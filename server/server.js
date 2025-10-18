@@ -4,6 +4,7 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import userRouter from "./routes/userRouter.js";
 import resumeRouter from "./routes/resumeRouter.js";
+import aiRouter from "./routes/aiRouter.js";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.get("/", (req, res) => {
 });
 app.use("/api/user", userRouter);
 app.use("/api/resume", resumeRouter);
+app.use("/api/ai", aiRouter);
 
 // Start server
 const PORT = process.env.PORT || 3000;
