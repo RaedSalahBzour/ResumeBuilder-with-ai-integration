@@ -132,10 +132,6 @@ const ResumeBuilder = () => {
       setResumeData(data.resume);
       toast.success(data.message);
     } catch (error) {
-      console.error(
-        "Error saving resume:",
-        error?.response?.data || error.message
-      );
       toast.error(error?.response?.data?.message || error.message);
     }
   };
