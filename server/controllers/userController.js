@@ -23,15 +23,15 @@ export const registerUser = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Inside registerUser:
-    const token = generateToken(newUser);
-
     // Create user
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
     });
+
+    // Inside registerUser:
+    const token = generateToken(newUser);
 
     res.status(201).json({
       message: "User registered successfully",
@@ -114,11 +114,11 @@ export const getUserById = async (req, res) => {
   }
 };
 
-// GET /api/users/resumes
+// GET /api/user/resumes
 export const getUserResumes = async (req, res) => {
   try {
-    const { userId } = req.userId;
-    const userResumes = await Resume.findOne({ userId });
+    const userId = req.userId;
+    const userResumes = await Resume.find({ userId });
     res.status(200).json({ userResumes });
   } catch (error) {
     res.status(500).json({ message: error.message || "Server error" });

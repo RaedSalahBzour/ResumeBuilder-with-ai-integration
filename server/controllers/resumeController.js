@@ -57,7 +57,7 @@ export const getResumeById = async (req, res) => {
 export const getPublicResume = async (req, res) => {
   try {
     const { resumeId } = req.params;
-    const resume = await Resume.findOne({ public: true, resumeId });
+    const resume = await Resume.findOne({ public: true, _id: resumeId });
     if (!resume) {
       return res.status(404).json({ message: "Resume not found" });
     }
@@ -74,22 +74,26 @@ export const updateResume = async (req, res) => {
     const { resumeId, resumeData, removeBackground } = req.body;
     const image = req.file;
 
-    const resumeDataCopy = JSON.parse(resumeData);
+    let resumeDataCopy;
+    if (typeof resumeData === "string") {
+      resumeDataCopy = await JSON.parse(resumeData);
+    } else {
+      resumeDataCopy = structuredClone(resumeData);
+    }
 
     if (image) {
+      if (removeBackground) {
+        transformation[0].effect = "bgremove";
+      }
       const response = await imageKit.files.upload({
         file: fs.createReadStream(image.path),
         fileName: "resume.png",
-        folderName: "user-resumes",
-        transformation: [
-          {
-            width: 300,
-            height: 300,
-            focus: "face",
-            zoom: "0.75",
-            effect: removeBackground ? "bgremove" : undefined,
-          },
-        ],
+        folder: "user-resumes",
+        transformation: {
+          pre:
+            "w-300,h-300,fo-face,z-0.75" +
+            (removeBackground ? ",e-bgremove" : ""),
+        },
       });
       fs.unlinkSync(image.path);
       resumeDataCopy.personal_info.image = response.url;

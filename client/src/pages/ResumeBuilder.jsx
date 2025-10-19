@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { dummyResumeData } from "../assets/assets";
 import {
   User,
   FileText,
@@ -25,10 +24,13 @@ import ExperienceForm from "../components/ExperienceForm";
 import EducationForm from "../components/EducationForm";
 import ProjectForm from "../components/ProjectForm";
 import SkillsForm from "../components/SkillsForm";
+import { useSelector } from "react-redux";
+import api from "../config/api";
+import toast from "react-hot-toast";
 
 const ResumeBuilder = () => {
   const { resumeId } = useParams();
-
+  const { token } = useSelector(state => state.auth);
   const [resumeData, setResumeData] = useState({
     _id: "",
     title: "",
@@ -47,11 +49,17 @@ const ResumeBuilder = () => {
   const [removeBackground, setRemoveBackground] = useState(false);
 
   const loadExistingResume = async resumeId => {
-    const resume = dummyResumeData.find(r => r._id === resumeId);
+    try {
+      const { data } = await api.get(`/api/resume/get/${resumeId}`, {
+        headers: { Authorization: token },
+      });
 
-    if (resume) {
-      setResumeData(resume);
-      document.title = resume.title;
+      if (data.resume) {
+        setResumeData(data.resume);
+        document.title = data.resume.title;
+      }
+    } catch (error) {
+      console.error("Failed to load resume:", error.message);
     }
   };
 
@@ -67,7 +75,69 @@ const ResumeBuilder = () => {
   const activeSection = sections[activeSectionIndex];
 
   const changeResumeVisibility = async () => {
-    setResumeData({ ...resumeData, public: !resumeData.public });
+    try {
+      const formData = new FormData();
+      formData.append("resumeId", resumeId);
+      formData.append(
+        "resumeData",
+        JSON.stringify({ public: !resumeData.public })
+      );
+
+      const { data } = await api.put("/api/resume/update", formData, {
+        headers: { Authorization: token },
+      });
+
+      setResumeData({ ...resumeData, public: !resumeData.public });
+      toast.success(data.message);
+    } catch (error) {
+      console.error(
+        "Error saving resume:",
+        error?.response?.data || error.message
+      );
+      toast.error(error?.response?.data?.message || error.message);
+    }
+  };
+
+  const saveResume = async () => {
+    try {
+      // Clone the resume data to avoid mutating state directly
+      let updatedResumeData = structuredClone(resumeData);
+
+      // Remove image from the cloned data if it's a File object
+      if (typeof resumeData.personal_info.image === "object") {
+        delete updatedResumeData.personal_info.image;
+      }
+
+      // Prepare FormData
+      const formData = new FormData();
+      formData.append("resumeId", resumeId);
+      formData.append("resumeData", JSON.stringify(updatedResumeData));
+
+      // Append removeBackground flag if needed
+      if (removeBackground) {
+        formData.append("removeBackground", "yes");
+      }
+
+      // Append the image if it's a File object
+      if (typeof resumeData.personal_info.image === "object") {
+        formData.append("image", resumeData.personal_info.image);
+      }
+
+      // Make the API request
+      const { data } = await api.put("/api/resume/update", formData, {
+        headers: {
+          Authorization: token,
+        },
+      });
+      setResumeData(data.resume);
+      toast.success(data.message);
+    } catch (error) {
+      console.error(
+        "Error saving resume:",
+        error?.response?.data || error.message
+      );
+      toast.error(error?.response?.data?.message || error.message);
+    }
   };
 
   const handleShare = () => {
@@ -249,6 +319,9 @@ const ResumeBuilder = () => {
                 )}
               </div>
               <button
+                onClick={() => {
+                  toast.promise(saveResume, { loading: "saving..." });
+                }}
                 className="bg-gradient-to-br from-green-100 to-green-200 ring ring-green-300 text-green-600 
              hover:ring-green-400 transition-all rounded-md px-6 py-2 mt-6 text-sm"
               >
