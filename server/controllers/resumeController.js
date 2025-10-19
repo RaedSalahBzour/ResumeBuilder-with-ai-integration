@@ -82,9 +82,6 @@ export const updateResume = async (req, res) => {
     }
 
     if (image) {
-      if (removeBackground) {
-        transformation[0].effect = "bgremove";
-      }
       const response = await imageKit.files.upload({
         file: fs.createReadStream(image.path),
         fileName: "resume.png",
